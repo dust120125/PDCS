@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">PDCS_Prototype</string>
+    <string name="action_settings">Settings</string>
+    <string name="section_format">Hello World from section: %1$d</string>
+    <string name="title_activity_maps">Map</string>
+
+    <string name="geodata_filename">geodata.bin</string>
+    <string name="title_activity_login">登入</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">密碼</string>
+    <string name="action_sign_in">登入</string>
+    <string name="action_register">註冊</string>
+    <string name="action_sign_in_short">登入</string>
+    <string name="error_existed_email">Email地址已註冊過</string>
+    <string name="error_invalid_email">不正確的Email地址</string>
+    <string name="error_invalid_password">密碼至少8字元</string>
+    <string name="error_incorrect_password">密碼錯誤</string>
+    <string name="error_field_required">不能為空</string>
+    <string name="error_user_no_found">找不到此用戶</string>
+
+</resources>
