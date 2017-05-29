@@ -39,3 +39,4 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-core:2.9.0.pr3'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.9.0.pr3'
 }
+apply plugin: 'com.google.gms.google-services'
