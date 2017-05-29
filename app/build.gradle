@@ -4,7 +4,7 @@ android {
     compileSdkVersion 23
     buildToolsVersion "25.0.0"
     defaultConfig {
-        applicationId "tw.idv.poipoi.pdcs_prototype"
+        applicationId 'tw.idv.poipoi.pdcs'
         minSdkVersion 23
         targetSdkVersion 23
         versionCode 1
@@ -20,6 +20,8 @@ android {
     packagingOptions {
         exclude 'META-INF/LICENSE'
         exclude 'META-INF/NOTICE'
+    }
+    productFlavors {
     }
 }
 

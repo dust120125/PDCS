@@ -12,7 +12,7 @@
         android:layout_alignParentEnd="true"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        tools:context="tw.idv.poipoi.pdcs_prototype.MapsActivity"
+        tools:context="tw.idv.poipoi.pdcs.MapsActivity"
         android:layout_above="@+id/scrollView3" />
 
     <ScrollView

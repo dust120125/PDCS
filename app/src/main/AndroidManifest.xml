@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="tw.idv.poipoi.pdcs_prototype">
+    package="tw.idv.poipoi.pdcs">
 
     <!--
          The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
@@ -23,14 +23,14 @@
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <application
-        android:name=".Core"
+        android:name="tw.idv.poipoi.pdcs.Core"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name="tw.idv.poipoi.pdcs.MainActivity"
             android:label="@string/app_name"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.NoActionBar">
@@ -41,9 +41,9 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".MapsActivity"
+            android:name="tw.idv.poipoi.pdcs.MapsActivity"
             android:label="@string/title_activity_maps"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName="tw.idv.poipoi.pdcs.MainActivity" />
 
         <meta-data
             android:name="com.google.android.gms.version"
@@ -62,12 +62,12 @@
             android:value="@string/google_maps_key" />
 
         <service
-            android:name=".CareService"
+            android:name="tw.idv.poipoi.pdcs.CareService"
             android:enabled="true"
             android:exported="true" />
 
         <activity
-            android:name=".LoginActivity"
+            android:name="tw.idv.poipoi.pdcs.LoginActivity"
             android:label="@string/title_activity_login"></activity>
     </application>
 
