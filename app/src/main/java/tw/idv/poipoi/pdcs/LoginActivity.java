@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 
@@ -12,21 +13,25 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.Window;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import tw.idv.poipoi.pdcs.user.Response;
 import tw.idv.poipoi.pdcs.user.User;
+import tw.idv.poipoi.pdcs.user.UserCallbacks;
 
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements UserCallbacks{
 
     /**
      * Keep track of the login task to ensure we can cancel it if requested.
@@ -40,10 +45,16 @@ public class LoginActivity extends AppCompatActivity {
     private View mProgressView;
     private View mLoginFormView;
 
+    private User mUser;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.i("Thread", "LoginAcivity: " + Thread.currentThread().getId());
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_login);
+        mUser = User.getInstance();
+        mUser.addListener(this);
         // Set up the login form.
         mEmailView = (EditText) findViewById(R.id.email);
 
@@ -77,6 +88,17 @@ public class LoginActivity extends AppCompatActivity {
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+        showProgress(true);
+
+        if (!mUser.isLogin()) {
+            if (!mUser.isCheckedLogin()) {
+                if (!mUser.checkLogin()){
+                    showProgress(false);
+                }
+            }
+        } else {
+            loginSuccess();
+        }
     }
 
     private void showRegisterDialog(){
@@ -187,8 +209,11 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void loginSuccess(){
-        Toast.makeText(this, "登入成功！",  Toast.LENGTH_LONG).show();
+        //Toast.makeText(this, "登入成功！",  Toast.LENGTH_LONG).show();
+        mUser.removeListener(this);
+        Intent intent = new Intent(this, MainActivity.class);
         finish();
+        startActivity(intent);
     }
 
     /**
@@ -227,6 +252,33 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onLogin() {
+        loginSuccess();
+    }
+
+    @Override
+    public void onLoginFail(String error) {
+
+    }
+
+    @Override
+    public void onLogout() {
+
+    }
+
+    @Override
+    public void onReceive(Response response) {
+
+    }
+
+    @Override
+    public void onCheckedLogin(boolean login) {
+        if (!login) {
+            showProgress(false);
+        }
+    }
+
 
     /**
      * Represents an asynchronous login/registration task used to authenticate
@@ -244,7 +296,7 @@ public class LoginActivity extends AppCompatActivity {
 
         @Override
         protected String doInBackground(Void... params) {
-            return User.getInstance().login(mEmail, mPassword, CareService.android_id);
+            return User.getInstance().login(mEmail, mPassword, Core.android_id);
         }
 
         @Override

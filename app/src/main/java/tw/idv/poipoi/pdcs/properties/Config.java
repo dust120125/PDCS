@@ -15,7 +15,7 @@ import tw.idv.poipoi.pdcs.PropertiesManager;
 
 public class Config {
 
-    private Context appContext;
+    private static Config mConfig;
 
     public static final String NAME = "config.ini";
 
@@ -25,25 +25,23 @@ public class Config {
 
     private static final String USER_ID = "userId";
     private static final String USER_PW = "userPw";
+    private static final String LOGIN_TIME = "loginTime";
 
     private DefaultProperties mProperties;
     private boolean lastestGeo = false;
     private boolean lastestGco = false;
 
-    public Config(Context context) {
-        appContext = context;
+    public Config() {
         mProperties = new DefaultProperties();
         mProperties.NAME = NAME;
     }
 
-    public Config(Context context, DefaultProperties mProperties) {
-        this(context);
+    public Config(DefaultProperties mProperties) {
         this.mProperties = mProperties;
     }
 
     public void setLastestGeoDatabaseTime(Date date) {
         mProperties.put(LASTEST_GEO_DATABASE_TIME, formatDate(date));
-        save();
     }
 
     public Date getLastestGeoDatabaseTime() {
@@ -52,7 +50,6 @@ public class Config {
 
     public void setLastestGcoDatabaseTime(Date date) {
         mProperties.put(LASTEST_GCO_DATABASE_TIME, formatDate(date));
-        save();
     }
 
     public Date getLastestGcoDatabaseTime() {
@@ -61,7 +58,6 @@ public class Config {
 
     public void setLastestCapUpdateTime(Date date) {
         mProperties.put(LASTEST_CAP_UPDATE_TIME, formatDate(date));
-        save();
     }
 
     public Date getLastestCapUpdateTime() {
@@ -99,9 +95,17 @@ public class Config {
         mProperties.put(USER_PW, userPw);
     }
 
-    public boolean save(){
+    public String getLoginTime() {
+        return mProperties.getProperty(LOGIN_TIME);
+    }
+
+    public void setLoginTime(String loginTime) {
+        mProperties.put(LOGIN_TIME, loginTime);
+    }
+
+    public synchronized boolean save(Context context){
         try {
-            PropertiesManager.saveProperties(appContext, getProperties());
+            PropertiesManager.saveProperties(context, getProperties());
             return true;
         } catch (IOException e) {
             e.printStackTrace();

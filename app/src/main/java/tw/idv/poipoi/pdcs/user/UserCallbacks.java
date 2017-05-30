@@ -14,4 +14,6 @@ public interface UserCallbacks {
 
     void onReceive(Response response);
 
+    void onCheckedLogin(boolean login);
+
 }

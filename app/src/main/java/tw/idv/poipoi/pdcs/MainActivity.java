@@ -81,10 +81,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (!User.getInstance().isLogin()){
-            Intent loginIntent = new Intent(this, LoginActivity.class);
-            startActivity(loginIntent);
-        }
+        Intent serviceIt = new Intent(this, CareService.class);
+        startService(serviceIt);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -451,6 +449,11 @@ public class MainActivity extends AppCompatActivity {
                     }
                     break;
             }
+        }
+
+        @Override
+        public void onCheckedLogin(boolean login) {
+
         }
     }
 

@@ -290,7 +290,9 @@ public class CapManager implements Serializable, CapListener {
                 config.setLastestCapUpdateTime(new Date());
                 Gson gson = new Gson();
                 CAP[] caps = gson.fromJson(s, CAP[].class);
-                insertAll(Arrays.asList(caps));
+                if (caps != null && caps.length > 0) {
+                    insertAll(Arrays.asList(caps));
+                }
             }
 
             @Override

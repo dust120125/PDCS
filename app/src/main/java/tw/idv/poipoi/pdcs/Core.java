@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.util.Log;
 
 import com.google.android.gms.location.LocationListener;
@@ -15,6 +16,7 @@ import com.google.gson.Gson;
 import org.dust.util.LruCache;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.net.URL;
@@ -36,6 +38,7 @@ import tw.idv.poipoi.pdcs.location.LocationRequester;
 import tw.idv.poipoi.pdcs.net.Callback;
 import tw.idv.poipoi.pdcs.net.URLConnectRunner;
 import tw.idv.poipoi.pdcs.properties.Config;
+import tw.idv.poipoi.pdcs.user.User;
 
 /**
  * Created by DuST on 2017/3/4.
@@ -43,12 +46,15 @@ import tw.idv.poipoi.pdcs.properties.Config;
 
 public class Core extends Application {
 
+    public static final String CONFIG_FILE = "config.ini";
+
     public static Core CORE;
     public static CareService CARE_SERVICE;
     public static Gson gson = new Gson();
     public static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.TAIWAN);
 
-    public Config config;
+    private static Config config;
+    public static String android_id;
 
     public static boolean PERMISSION_ACCESS_LOCATION = false;
 
@@ -68,15 +74,35 @@ public class Core extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Thread.setDefaultUncaughtExceptionHandler(new CrashHandler(getApplicationContext(), "AppCrash"));
         CORE = this;
+        Log.i("Thread", "Core: " + Thread.currentThread().getId());
+        Thread.setDefaultUncaughtExceptionHandler(new CrashHandler(getApplicationContext(), "AppCrash"));
+        android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Taipei"));
         geoDataLruCache = new LruCache<>(GEODATA_CACHE_SIZE);
+        loadConfig();
+        User.getInstance().loadConfig(config);
         initService();
     }
 
-    public void saveConfig(){
-        CARE_SERVICE.saveConfig();
+    public static Config getConfig(){
+        return config;
+    }
+
+    private void loadConfig() {
+        if (PropertiesManager.existsProperties(getApplicationContext(), CONFIG_FILE)) {
+            try {
+                config = new Config(PropertiesManager.getProperties(getApplicationContext(), CONFIG_FILE));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            config = new Config();
+        }
+    }
+
+    public static void saveConfig(){
+        config.save(getMainContext());
     }
 
     private void initService(){
@@ -87,13 +113,12 @@ public class Core extends Application {
                 BIND_AUTO_CREATE);
     }
 
-    public boolean hasGeoDatabase(){
-        return CARE_SERVICE.hasGeoDatabase();
-        //return !(config.getLastestGeoDatabaseTime() == null);
+    public boolean hasGeoDatabase() {
+        return !(config.getLastestGeoDatabaseTime() == null);
     }
 
-    public boolean hasGcoDatabase(){
-        return CARE_SERVICE.hasGcoDatabase();
+    public boolean hasGcoDatabase() {
+        return !(config.getLastestGcoDatabaseTime() == null);
     }
 
     public CareService getCareService(){

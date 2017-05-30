@@ -1,5 +1,7 @@
 package tw.idv.poipoi.pdcs.user;
 
+import android.util.Log;
+
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
@@ -10,10 +12,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 import tw.idv.poipoi.pdcs.CareService;
+import tw.idv.poipoi.pdcs.Core;
 import tw.idv.poipoi.pdcs.net.Callback;
 import tw.idv.poipoi.pdcs.net.URLConnectRunner;
+import tw.idv.poipoi.pdcs.properties.Config;
 
 /**
  * Created by DuST on 2017/5/28.
@@ -28,7 +33,8 @@ public class User implements UserCallbacks{
     public static final String EMAIL_INVALID = "userID_invalid";
 
     private static User mUser;
-    private boolean login;
+    private boolean login = false;
+    private boolean checkedLogin = false;
     private ArrayList<UserCallbacks> mCallbacks;
 
     private String userID;
@@ -49,6 +55,12 @@ public class User implements UserCallbacks{
         return mUser;
     }
 
+    public void loadConfig(Config config){
+        userID = config.getUserId();
+        password = config.getUserPw();
+        loginTime = config.getLoginTime();
+    }
+
     public boolean isLogin() {
         return login;
     }
@@ -62,6 +74,10 @@ public class User implements UserCallbacks{
         }
     }
 
+    public boolean isCheckedLogin() {
+        return checkedLogin;
+    }
+
     public void addListener(UserCallbacks callbacks){
         if (!mCallbacks.contains(callbacks))
             mCallbacks.add(callbacks);
@@ -69,6 +85,18 @@ public class User implements UserCallbacks{
 
     public void removeListener(UserCallbacks callbacks){
         mCallbacks.remove(callbacks);
+    }
+
+    public void loginSuccess(String email, String password, String loginTime){
+        this.userID = email;
+        this.password = password;
+        this.loginTime = loginTime;
+        Config config = CareService.getInstance().getConfig();
+        config.setUserId(userID);
+        config.setUserPw(password);
+        config.setLoginTime(loginTime);
+        Core.saveConfig();
+        setLogin(true);
     }
 
     public String login(String email, String password, String androidID) {
@@ -98,10 +126,7 @@ public class User implements UserCallbacks{
             if (result.charAt(0) == 65279) result = result.substring(1);
 
             if (result.startsWith(LOGIN_OR_REGISTER_SUCCESS)) {
-                this.userID = email;
-                this.password = password;
-                this.loginTime = result.split(" ")[1];
-                setLogin(true);
+                loginSuccess(email, password, result.split(" ")[1]);
             }
         } catch (java.io.IOException e) {
             e.printStackTrace();
@@ -143,15 +168,17 @@ public class User implements UserCallbacks{
         return result;
     }
 
-    public boolean checkLogin(){
-        if (userID == null || password == null || loginTime == null || CareService.android_id == null){
+    public synchronized boolean checkLogin(){
+        if (checkedLogin) return false;
+        if (userID == null || password == null || loginTime == null || Core.android_id == null){
             return false;
         }
 
         String post = "userID=" + userID +
                 "&loginTime=" + loginTime +
-                "&android_id=" + CareService.android_id;
+                "&android_id=" + Core.android_id;
 
+        checkedLogin = true;
         new URLConnectRunner("http://www.poipoi.idv.tw/android_login/CheckLogin2.php",
                 post, Charset.defaultCharset(),
                 new Callback() {
@@ -159,9 +186,9 @@ public class User implements UserCallbacks{
                     public void runCallback(Object... params) {
                         String result = params[0].toString();
                         if (result.startsWith(LOGIN_OR_REGISTER_SUCCESS)){
-                            setLogin(true);
+                            onCheckedLogin(true);
                         } else {
-                            onLoginFail(result);
+                            onCheckedLogin(false);
                         }
                     }
                 });
@@ -169,13 +196,13 @@ public class User implements UserCallbacks{
     }
 
     public boolean serverService(String url, String[] post){
-        if (userID == null || password == null || loginTime == null || CareService.android_id == null){
+        if (userID == null || password == null || loginTime == null || Core.android_id == null){
             return false;
         }
 
         String postStr = "userID=" + userID +
                 "&loginTime=" + loginTime +
-                "&android_id=" + CareService.android_id;
+                "&android_id=" + Core.android_id;
 
         if (post != null) {
             StringBuilder stringBuilder = new StringBuilder();
@@ -191,8 +218,15 @@ public class User implements UserCallbacks{
                     @Override
                     public void runCallback(Object... params) {
                         String result = params[0].toString();
-                        Response response = gson.fromJson(result, Response.class);
-                        onReceive(response);
+                        Response response = null;
+                        try {
+                            response = gson.fromJson(result, Response.class);
+                        } catch (RuntimeException ex){
+                            ex.printStackTrace();
+                        }
+                        if (response != null) {
+                            onReceive(response);
+                        }
                     }
                 });
         return true;
@@ -200,29 +234,43 @@ public class User implements UserCallbacks{
 
     @Override
     public void onLogin() {
-        for (UserCallbacks callback : mCallbacks) {
+        Log.i("User", "Login Success");
+        for (UserCallbacks callback : new LinkedList<>(mCallbacks)) {
             callback.onLogin();
         }
     }
 
     @Override
     public void onLoginFail(String error) {
-        for (UserCallbacks callback : mCallbacks) {
+        Log.i("User", "Login Fail");
+        for (UserCallbacks callback : new LinkedList<>(mCallbacks)) {
             callback.onLoginFail(error);
         }
     }
 
     @Override
     public void onLogout() {
-        for (UserCallbacks callback : mCallbacks) {
+        Log.i("User", "Logout");
+        for (UserCallbacks callback : new LinkedList<>(mCallbacks)) {
             callback.onLogout();
         }
     }
 
     @Override
     public void onReceive(Response response) {
-        for (UserCallbacks callback : mCallbacks) {
+        for (UserCallbacks callback : new LinkedList<>(mCallbacks)) {
             callback.onReceive(response);
+        }
+    }
+
+    @Override
+    public void onCheckedLogin(boolean login) {
+        Log.i("User", "CheckedLogin: " + login);
+        for (UserCallbacks callback : new LinkedList<>(mCallbacks)) {
+            callback.onCheckedLogin(login);
+        }
+        if (login){
+            setLogin(true);
         }
     }
 }

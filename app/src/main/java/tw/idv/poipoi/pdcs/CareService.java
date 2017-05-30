@@ -12,11 +12,14 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
 
 import com.google.android.gms.location.LocationListener;
+import com.google.firebase.iid.FirebaseInstanceId;
 
 import org.dust.capApi.CAP;
 import org.dust.capApi.Severity;
@@ -40,14 +43,15 @@ import tw.idv.poipoi.pdcs.user.UserCallbacks;
 
 public class CareService extends Service implements UserCallbacks{
 
+    private static CareService mCareService;
+
     public static boolean RUNNING_IN_EMULATOR = isOnEmulator();
     public static boolean DOWNLOAD_ALL_CAP = false;
     public static boolean DELETE_EXPIRED = true;
 
-    public static String android_id;
-
+    private boolean started;
     private MyBinder mBinder;
-    public static final String CONFIG_FILE = "config.ini";
+
     public static final String CAP_FILE = "caps.c";
 
     private static final String SERVICE = "Service";
@@ -63,7 +67,7 @@ public class CareService extends Service implements UserCallbacks{
     public Config getConfig() {
         return config;
     }
-    private Config config;
+    private static Config config;
 
     private GeocodeSql GEO_CODE_SQL;
     private AlarmReceiver alarmReceiver;
@@ -75,24 +79,53 @@ public class CareService extends Service implements UserCallbacks{
 
     private CapManager capManager;
 
+    private static class MyHandler extends Handler{
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case HandlerCode.FCM_MESSAGE_RECEIVE:
+                    User.getInstance().onReceive((Response) msg.obj);
+                    break;
+            }
+        }
+    }
+    private MyHandler mHandler;
+
     public CareService() {
+    }
+
+    public static CareService getInstance(){
+        return mCareService;
     }
 
     @SuppressLint("HardwareIds")
     @Override
     public void onCreate() {
+        mCareService = this;
+        mHandler = new MyHandler();
         Log.d(SERVICE, "onCreate");
-        Thread.setDefaultUncaughtExceptionHandler(new CrashHandler(getApplicationContext(), "AppCrash"));
-        android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+        Log.i("Thread", "Service: " + Thread.currentThread().getId());
+        Log.i("Firebase", "Token: " + FirebaseInstanceId.getInstance().getToken());
 
-        loadConfig();
+        config = Core.getConfig();
         mUser = User.getInstance();
         mUser.addListener(this);
-        mUser.checkLogin();
+        capManager = new CapManager(getApplicationContext(), config);
 
         mBinder = new MyBinder();
+
+        if (!mUser.isLogin()) {
+            if (!mUser.isCheckedLogin()) {
+                mUser.checkLogin();
+            }
+        } else {
+            startOn();
+        }
+    }
+
+    private void startOn(){
+        Log.i(SERVICE, "StartOn");
         alarmReceiver = new AlarmReceiver();
-        capManager = new CapManager(getApplicationContext(), config);
         //capManager.downloadAllCaps();
         capManager.downloadNewCaps(config.getLastestCapUpdateTime());
         //capManager.downloadNewCaps(Date.valueOf("2017-05-24"));
@@ -116,6 +149,7 @@ public class CareService extends Service implements UserCallbacks{
             @Override
             public void onLocationChanged(Location location) {
                 Address address = null;
+                if (!hasGcoDatabase()) return;
                 try {
                     Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.TAIWAN);
                     if (RUNNING_IN_EMULATOR){
@@ -123,6 +157,7 @@ public class CareService extends Service implements UserCallbacks{
                         location.setLongitude(120.3835537);
                     }
                     address = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1).get(0);
+                    if (address == null) return;
                     Log.d("Location", address.getAddressLine(0));
                     String townCode = getTown(address.getAdminArea() + address.getLocality()).code_103;
                     if (townCode != null) {
@@ -142,6 +177,8 @@ public class CareService extends Service implements UserCallbacks{
                 }
             }
         });
+
+        started = true;
     }
 
     public boolean requestLocationService(){
@@ -150,6 +187,14 @@ public class CareService extends Service implements UserCallbacks{
 
     public boolean hasLocationService(){
         return mLocationRequester.hasLocationService();
+    }
+
+    public boolean hasGeoDatabase() {
+        return !(config.getLastestGeoDatabaseTime() == null);
+    }
+
+    public boolean hasGcoDatabase() {
+        return !(config.getLastestGcoDatabaseTime() == null);
     }
 
     private void setAlarm() {
@@ -171,6 +216,10 @@ public class CareService extends Service implements UserCallbacks{
         unregisterReceiver(alarmReceiver);
     }
 
+    public void sendMessage(Message msg){
+        mHandler.sendMessage(msg);
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(SERVICE, "onStartCommand");
@@ -181,7 +230,7 @@ public class CareService extends Service implements UserCallbacks{
     public void onTaskRemoved(Intent rootIntent) {
         Log.d(SERVICE, "onTaskRemoved");
         onClosing();
-        super.onTaskRemoved(rootIntent);
+        //super.onTaskRemoved(rootIntent);
     }
 
     @Override
@@ -197,9 +246,12 @@ public class CareService extends Service implements UserCallbacks{
     }
 
     private void onClosing(){
-        saveCapList(capManager.getCapList());
-        unregisterReceiver(alarmReceiver);
+        if (started) {
+            saveCapList(capManager.getCapList());
+            unregisterReceiver(alarmReceiver);
+        }
         saveConfig();
+        Log.i(SERVICE, "onClosing");
     }
 
     private void saveCapList(Collection<CAP> caps){
@@ -234,33 +286,8 @@ public class CareService extends Service implements UserCallbacks{
         }
     }
 
-    private void loadConfig() {
-        if (PropertiesManager.existsProperties(getApplicationContext(), CONFIG_FILE)) {
-            try {
-                config = new Config(getApplicationContext(),
-                        PropertiesManager.getProperties(getApplicationContext(), CONFIG_FILE));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            config = new Config(getApplicationContext());
-        }
-    }
-
     public void saveConfig() {
-        try {
-            PropertiesManager.saveProperties(getApplicationContext(), config.getProperties());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public boolean hasGeoDatabase() {
-        return !(config.getLastestGeoDatabaseTime() == null);
-    }
-
-    public boolean hasGcoDatabase() {
-        return !(config.getLastestGcoDatabaseTime() == null);
+        Core.saveConfig();
     }
 
     public City getCity(String name) {
@@ -318,7 +345,9 @@ public class CareService extends Service implements UserCallbacks{
 
     @Override
     public void onLogin() {
-
+        if (!started) {
+            startOn();
+        }
     }
 
     @Override
@@ -328,12 +357,20 @@ public class CareService extends Service implements UserCallbacks{
 
     @Override
     public void onLogout() {
-
+        stopSelf();
     }
 
     @Override
     public void onReceive(Response response) {
 
+    }
+
+    @Override
+    public void onCheckedLogin(boolean login) {
+        Log.i(SERVICE, "CheckedLogin: " + login);
+        if (!login){
+            //stopSelf();
+        }
     }
 
     private class MyBinder extends ServiceBinder {

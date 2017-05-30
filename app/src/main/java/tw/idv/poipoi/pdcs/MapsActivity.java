@@ -39,10 +39,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LayoutInflater mInflater;
     private MyHandler mHandler;
 
-    public static final int ADD_POLYGON = 11;
-    public static final int ADD_CIRCLE = 12;
-    public static final int ADD_MARKER = 13;
-
     private CAP cap;
     private Info info;
 
@@ -60,13 +56,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what){
-                case ADD_POLYGON:
+                case HandlerCode.MAPS_ADD_POLYGON:
                     mMap.addPolygon((PolygonOptions) msg.obj);
                     break;
-                case ADD_CIRCLE:
+                case HandlerCode.MAPS_ADD_CIRCLE:
                     mMap.addCircle((CircleOptions) msg.obj);
                     break;
-                case ADD_MARKER:
+                case HandlerCode.MAPS_ADD_MARKER:
                     mMap.addMarker((MarkerOptions) msg.obj);
                     break;
             }

@@ -14,6 +14,7 @@ import org.dust.capApi.Value;
 
 import java.util.Map;
 
+import tw.idv.poipoi.pdcs.HandlerCode;
 import tw.idv.poipoi.pdcs.MapsActivity;
 import tw.idv.poipoi.pdcs.SeverityColor;
 import tw.idv.poipoi.pdcs.geo.GeoData;
@@ -72,15 +73,15 @@ public class MapDrawer {
     }
 
     private void addPolygon(PolygonOptions polygonOptions){
-        Message.obtain(mHandler, MapsActivity.ADD_POLYGON, polygonOptions).sendToTarget();
+        Message.obtain(mHandler, HandlerCode.MAPS_ADD_POLYGON, polygonOptions).sendToTarget();
     }
 
     private void addCircle(CircleOptions circleOptions){
-        Message.obtain(mHandler, MapsActivity.ADD_CIRCLE, circleOptions).sendToTarget();
+        Message.obtain(mHandler, HandlerCode.MAPS_ADD_CIRCLE, circleOptions).sendToTarget();
     }
 
     private void addMarker(MarkerOptions markerOptions){
-        Message.obtain(mHandler, MapsActivity.ADD_MARKER, markerOptions).sendToTarget();
+        Message.obtain(mHandler, HandlerCode.MAPS_ADD_MARKER, markerOptions).sendToTarget();
     }
 
 }
