@@ -11,6 +11,8 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
@@ -20,6 +22,7 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -31,6 +34,8 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import org.dust.capApi.CAP;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -40,19 +45,20 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 
-import static tw.idv.poipoi.pdcs.Core.CORE;
-
-import org.dust.capApi.CAP;
-
 import tw.idv.poipoi.pdcs.database.GeoSqlHelper;
 import tw.idv.poipoi.pdcs.database.GeocodeSqlHelper;
-import tw.idv.poipoi.pdcs.geo.GeoData;
 import tw.idv.poipoi.pdcs.fragment.CapListHandler;
+import tw.idv.poipoi.pdcs.fragment.FriendListHandler;
+import tw.idv.poipoi.pdcs.geo.GeoData;
 import tw.idv.poipoi.pdcs.net.Callback;
 import tw.idv.poipoi.pdcs.user.Response;
 import tw.idv.poipoi.pdcs.user.ServerAction;
 import tw.idv.poipoi.pdcs.user.User;
 import tw.idv.poipoi.pdcs.user.UserCallbacks;
+import tw.idv.poipoi.pdcs.user.friend.Friend;
+
+import static tw.idv.poipoi.pdcs.Core.CORE;
+import static tw.idv.poipoi.pdcs.HandlerCode.FRIEND_LIST_DATA_CHANGED;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -169,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
             case REQUEST_ACCESS_LOCATION:
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Core.PERMISSION_ACCESS_LOCATION = true;
-                    if (!CORE.getCareService().hasLocationService()){
+                    if (!CORE.getCareService().hasLocationService()) {
                         CORE.getCareService().requestLocationService();
                     }
                 } else {
@@ -312,16 +318,9 @@ public class MainActivity extends AppCompatActivity {
          */
         private static final String ARG_SECTION_NUMBER = "section_number";
 
-        private static final CapListHandler capListHandler = new CapListHandler();
-
-        static {
-            CORE.addCapListener(new CapListener() {
-                @Override
-                public void onCapChanged(ArrayList<CAP> caps) {
-                    capListHandler.notifyDataSetChanged();
-                }
-            });
-        }
+        private CapListHandler capListHandler;
+        private FriendListHandler mFriendListHandler;
+        private CapListener mCapListener;
 
         public PlaceholderFragment() {
         }
@@ -354,20 +353,30 @@ public class MainActivity extends AppCompatActivity {
                             showSearchFriendDialog();
                         }
                     });
+                    mFriendListHandler = new FriendListHandler(this.getActivity());
+                    mFriendListHandler.setParentList((ListView) rootView.findViewById(R.id.listView_friends));
                     User.getInstance().addListener(this);
                     break;
 
                 case 2:
                     rootView = inflater.inflate(R.layout.fragment_caplist, container, false);
+                    capListHandler = new CapListHandler();
                     capListHandler.setParentList((ListView) rootView.findViewById(R.id.listView_capList));
+                    mCapListener = new CapListener() {
+                        @Override
+                        public void onCapChanged(ArrayList<CAP> caps) {
+                            capListHandler.notifyDataSetChanged();
+                        }
+                    };
                     break;
             }
 
             return rootView;
         }
 
-        private void showSearchFriendDialog(){
+        private void showSearchFriendDialog() {
             final EditText editText = new EditText(getContext());
+            editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
             AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
             builder.setTitle("尋找朋友")
                     .setMessage("輸入朋友的 Email")
@@ -387,8 +396,8 @@ public class MainActivity extends AppCompatActivity {
             builder.show();
         }
 
-        private void searchFriend(String email){
-            if (email != null && email.contains("@")){
+        private void searchFriend(String email) {
+            if (email != null && email.contains("@")) {
                 User.getInstance().serverService("http://www.poipoi.idv.tw/android_login/Friend.php?mode=search",
                         new String[]{"friendID=" + email});
             } else {
@@ -396,7 +405,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        private void showInviteFriendDialog(final String email){
+        private void showInviteFriendDialog(final String email) {
             AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
             builder.setTitle("邀請加入朋友")
                     .setMessage("確定邀請 " + email + " 成為朋友?")
@@ -433,19 +442,31 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onReceive(Response response) {
-            switch (response.getAction()){
+            switch (response.getAction()) {
                 case ServerAction.FRIEND_ID_FOUND:
-                    if ((boolean) response.getData(0)){
+                    if ((boolean) response.getData(0)) {
                         showInviteFriendDialog(response.getData(1).toString());
                     } else {
                         Toast.makeText(getContext(), "找不到此帳號", Toast.LENGTH_LONG).show();
                     }
                     break;
                 case ServerAction.INVITE_FRIEND:
-                    if ((boolean) response.getData(0)){
-
+                    if ((boolean) response.getData(0)) {
+                        String friendId = response.getData(1).toString();
+                        Friend friend = new Friend(friendId, User.getInstance().getUserID());
+                        CORE.getFriendSql().insert(friend);
                     } else {
                         Toast.makeText(getContext(), "邀請好友失敗，請稍後重試", Toast.LENGTH_LONG).show();
+                    }
+                    break;
+                case ServerAction.AGREE_FRIEND_INVITE:
+                    if ((boolean) response.getData(0)) {
+                        String inviterId = response.getData(1).toString();
+                        Friend friend = new Friend(inviterId, inviterId);
+                        friend.setAgree(true);
+                        CORE.getFriendSql().update(friend);
+                    } else {
+                        Toast.makeText(getContext(), "同意邀請失敗，請稍後重試", Toast.LENGTH_LONG).show();
                     }
                     break;
             }
@@ -454,6 +475,30 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCheckedLogin(boolean login) {
 
+        }
+
+        @Override
+        public void onResume() {
+            super.onResume();
+            if (mCapListener != null){
+                CORE.addCapListener(mCapListener);
+                capListHandler.notifyDataSetChanged();
+            }
+            if (mFriendListHandler != null){
+                CORE.getFriendSql().addOnDataChangedListener(mFriendListHandler);
+                mFriendListHandler.notifyDataSetChanged();
+            }
+        }
+
+        @Override
+        public void onPause() {
+            if (mCapListener != null){
+                CORE.removeCapListener(mCapListener);
+            }
+            if (mFriendListHandler != null){
+                CORE.getFriendSql().removeOnDataChangedListener(mFriendListHandler);
+            }
+            super.onPause();
         }
     }
 

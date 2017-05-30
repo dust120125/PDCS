@@ -2,6 +2,7 @@ package tw.idv.poipoi.pdcs.user;
 
 import android.util.Log;
 
+import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
@@ -61,6 +62,10 @@ public class User implements UserCallbacks{
         loginTime = config.getLoginTime();
     }
 
+    public String getUserID() {
+        return userID;
+    }
+
     public boolean isLogin() {
         return login;
     }
@@ -85,6 +90,14 @@ public class User implements UserCallbacks{
 
     public void removeListener(UserCallbacks callbacks){
         mCallbacks.remove(callbacks);
+    }
+
+    public synchronized void updateFirebaseToken(){
+        String token = FirebaseInstanceId.getInstance().getToken();
+        if (token != null){
+            serverService("http://www.poipoi.idv.tw/android_login/UpdateFcmToken.php",
+                    new String[]{"token=" + token});
+        }
     }
 
     public void loginSuccess(String email, String password, String loginTime){
@@ -235,6 +248,7 @@ public class User implements UserCallbacks{
     @Override
     public void onLogin() {
         Log.i("User", "Login Success");
+        updateFirebaseToken();
         for (UserCallbacks callback : new LinkedList<>(mCallbacks)) {
             callback.onLogin();
         }

@@ -12,4 +12,6 @@ public class HandlerCode {
 
     public static final int FCM_MESSAGE_RECEIVE = 91;
 
+    public static final int FRIEND_LIST_DATA_CHANGED = 991;
+
 }

@@ -12,10 +12,7 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
-import android.provider.Settings;
 import android.util.Log;
 
 import com.google.android.gms.location.LocationListener;
@@ -30,6 +27,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Map;
 
 import tw.idv.poipoi.pdcs.database.GeocodeSql;
 import tw.idv.poipoi.pdcs.geo.City;
@@ -38,8 +36,11 @@ import tw.idv.poipoi.pdcs.geo.Village;
 import tw.idv.poipoi.pdcs.location.LocationRequester;
 import tw.idv.poipoi.pdcs.properties.Config;
 import tw.idv.poipoi.pdcs.user.Response;
+import tw.idv.poipoi.pdcs.user.ServerAction;
 import tw.idv.poipoi.pdcs.user.User;
 import tw.idv.poipoi.pdcs.user.UserCallbacks;
+import tw.idv.poipoi.pdcs.user.friend.Friend;
+import static tw.idv.poipoi.pdcs.Core.CORE;
 
 public class CareService extends Service implements UserCallbacks{
 
@@ -79,18 +80,6 @@ public class CareService extends Service implements UserCallbacks{
 
     private CapManager capManager;
 
-    private static class MyHandler extends Handler{
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what){
-                case HandlerCode.FCM_MESSAGE_RECEIVE:
-                    User.getInstance().onReceive((Response) msg.obj);
-                    break;
-            }
-        }
-    }
-    private MyHandler mHandler;
-
     public CareService() {
     }
 
@@ -102,7 +91,6 @@ public class CareService extends Service implements UserCallbacks{
     @Override
     public void onCreate() {
         mCareService = this;
-        mHandler = new MyHandler();
         Log.d(SERVICE, "onCreate");
         Log.i("Thread", "Service: " + Thread.currentThread().getId());
         Log.i("Firebase", "Token: " + FirebaseInstanceId.getInstance().getToken());
@@ -214,10 +202,6 @@ public class CareService extends Service implements UserCallbacks{
                 it, PendingIntent.FLAG_UPDATE_CURRENT);
         am.cancel(pi);
         unregisterReceiver(alarmReceiver);
-    }
-
-    public void sendMessage(Message msg){
-        mHandler.sendMessage(msg);
     }
 
     @Override
@@ -362,7 +346,11 @@ public class CareService extends Service implements UserCallbacks{
 
     @Override
     public void onReceive(Response response) {
-
+        switch (response.getAction()){
+            case ServerAction.RECEIVE_FCM_MESSAGE:
+                handleFcmMessage((Map<String, Object>) response.getData(0));
+                break;
+        }
     }
 
     @Override
@@ -370,6 +358,32 @@ public class CareService extends Service implements UserCallbacks{
         Log.i(SERVICE, "CheckedLogin: " + login);
         if (!login){
             //stopSelf();
+        }
+    }
+
+    private void handleFcmMessage(Map<String, Object> data){
+        try {
+            int action = Integer.parseInt(data.get("action").toString());
+            switch (action){
+                case ServerAction.INVITE_FRIEND:
+                    if (data.get("target").equals(User.getInstance().getUserID())){
+                        String inviter = data.get("inviter").toString();
+                        Friend friend = new Friend(inviter, inviter);
+                        CORE.getFriendSql().insert(friend);
+                    }
+                    break;
+                case ServerAction.AGREE_FRIEND_INVITE:
+                    if (data.get("inviter").equals(User.getInstance().getUserID())){
+                        String target = data.get("target").toString();
+                        String inviter = data.get("inviter").toString();
+                        Friend friend = new Friend(target, inviter);
+                        friend.setAgree(true);
+                        CORE.getFriendSql().update(friend);
+                    }
+                    break;
+            }
+        } catch (NumberFormatException e){
+            e.printStackTrace();
         }
     }
 

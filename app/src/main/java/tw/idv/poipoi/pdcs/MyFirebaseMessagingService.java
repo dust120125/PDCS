@@ -31,6 +31,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         Message msg = Message.obtain();
         msg.what = HandlerCode.FCM_MESSAGE_RECEIVE;
         msg.obj = response;
-        CareService.getInstance().sendMessage(msg);
+        Core.CORE.sendMessage(msg);
     }
 }

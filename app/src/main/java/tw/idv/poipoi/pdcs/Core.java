@@ -6,7 +6,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -31,6 +33,8 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 import org.dust.capApi.CAP;
+
+import tw.idv.poipoi.pdcs.database.FriendSql;
 import tw.idv.poipoi.pdcs.database.GeoSql;
 import tw.idv.poipoi.pdcs.geo.GeoData;
 import tw.idv.poipoi.pdcs.fragment.CapListHandler;
@@ -38,6 +42,7 @@ import tw.idv.poipoi.pdcs.location.LocationRequester;
 import tw.idv.poipoi.pdcs.net.Callback;
 import tw.idv.poipoi.pdcs.net.URLConnectRunner;
 import tw.idv.poipoi.pdcs.properties.Config;
+import tw.idv.poipoi.pdcs.user.Response;
 import tw.idv.poipoi.pdcs.user.User;
 
 /**
@@ -62,7 +67,7 @@ public class Core extends Application {
     private LruCache<String, GeoData> geoDataLruCache;
     private LocationRequester mLocationRequester;
 
-
+    private FriendSql mFriendSql;
     private HashMap<String, CAP> CAP_MAP = new HashMap<>();
     private ArrayList<CAP> CAP_LIST = new ArrayList<>();
 
@@ -70,6 +75,18 @@ public class Core extends Application {
     private CapListHandler CAP_LIST_HANDLER;
 
     private static final int GEODATA_CACHE_SIZE = 100;
+
+    private static class MyHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case HandlerCode.FCM_MESSAGE_RECEIVE:
+                    User.getInstance().onReceive((Response) msg.obj);
+                    break;
+            }
+        }
+    }
+    private MyHandler mHandler;
 
     @Override
     public void onCreate() {
@@ -83,6 +100,7 @@ public class Core extends Application {
         loadConfig();
         User.getInstance().loadConfig(config);
         initService();
+        mHandler = new MyHandler();
     }
 
     public static Config getConfig(){
@@ -113,6 +131,10 @@ public class Core extends Application {
                 BIND_AUTO_CREATE);
     }
 
+    public void sendMessage(Message msg){
+        mHandler.sendMessage(msg);
+    }
+
     public boolean hasGeoDatabase() {
         return !(config.getLastestGeoDatabaseTime() == null);
     }
@@ -123,6 +145,13 @@ public class Core extends Application {
 
     public CareService getCareService(){
         return CARE_SERVICE;
+    }
+
+    public FriendSql getFriendSql(){
+        if (mFriendSql == null){
+            mFriendSql = new FriendSql(this);
+        }
+        return mFriendSql;
     }
 
     public static void getCap(String capId, Callback callback) {
