@@ -10,6 +10,8 @@ import org.dust.capApi.Info;
 import org.dust.capApi.Severity.SeverityCode;
 import org.dust.capApi.parser.AP_defalut;
 import org.dust.capApi.parser.AreaParser;
+import org.dust.util.LruCache;
+
 import java.util.Map;
 
 /**
@@ -20,19 +22,33 @@ public class AreaFactory {
 
     //可以加入 LruCache 做優化
 
+    private static LruCache<String, AreaParser> parserLruCache;
+    private static AreaParser defalutParser = new AP_defalut();
+
+    static {
+        parserLruCache = new LruCache<>(5);
+    }
+
     public static Map<String, Area> getSeverity(Info info) {
         AreaParser ap;
         String eventCode = info.eventCode.get(0).value;
         String className = "AP_" + eventCode;
 
-        try {
-            Class parserClass = Class.forName("org.dust.capApi.parser." + className);
-            ap = (AreaParser) parserClass.newInstance();
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
-            ap = new AP_defalut();
+        if ((ap = parserLruCache.get(className)) == null) {
+            try {
+                Class parserClass = Class.forName("org.dust.capApi.parser." + className);
+                ap = (AreaParser) parserClass.newInstance();
+                parserLruCache.put(className, ap);
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
+                ap = defalutParser;
+            }
         }
 
         return ap.parse(info);
+    }
+
+    public static void cleanCache(){
+        parserLruCache.clear();
     }
 
 }

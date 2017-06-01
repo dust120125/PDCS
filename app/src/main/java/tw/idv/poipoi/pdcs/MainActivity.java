@@ -11,8 +11,6 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
@@ -58,7 +56,6 @@ import tw.idv.poipoi.pdcs.user.UserCallbacks;
 import tw.idv.poipoi.pdcs.user.friend.Friend;
 
 import static tw.idv.poipoi.pdcs.Core.CORE;
-import static tw.idv.poipoi.pdcs.HandlerCode.FRIEND_LIST_DATA_CHANGED;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -447,7 +444,22 @@ public class MainActivity extends AppCompatActivity {
                     if ((boolean) response.getData(0)) {
                         showInviteFriendDialog(response.getData(1).toString());
                     } else {
-                        Toast.makeText(getContext(), "找不到此帳號", Toast.LENGTH_LONG).show();
+                        String err;
+                        switch (response.getData(1).toString()){
+                            case "self":
+                                err = "你不能邀請自己成為好友";
+                                break;
+                            case "no_found":
+                                err = "找不到此帳號";
+                                break;
+                            case "already_friend":
+                                err = "你和這個人已經是朋友了";
+                                break;
+                            default:
+                                err = "錯誤";
+                                break;
+                        }
+                        Toast.makeText(getContext(), err, Toast.LENGTH_LONG).show();
                     }
                     break;
                 case ServerAction.INVITE_FRIEND:

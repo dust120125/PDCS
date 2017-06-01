@@ -7,6 +7,7 @@ import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import tw.idv.poipoi.pdcs.alert.AlertFactory;
 import tw.idv.poipoi.pdcs.net.Callback;
 import tw.idv.poipoi.pdcs.net.URLConnectRunner;
 import tw.idv.poipoi.pdcs.properties.Config;
@@ -90,7 +92,7 @@ public class CapManager implements Serializable, CapListener {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd%20HH:mm:ss", Locale.TAIWAN);
             String dateStr = sdf.format(lastUpdateDate);
             //String url = "http://www.poipoi.idv.tw/android_login/CheckUpdate.php?time='" + dateStr + "'";
-            String url = "http://www.poipoi.idv.tw/android_login/CheckUpdate.php";
+            String url = "http://www.poipoi.idv.tw/android_login/CheckUpdate2.php";
             new URLConnectRunner(url, null, Charset.defaultCharset(), new Callback() {
                 @Override
                 public void runCallback(Object... params) {
@@ -189,10 +191,12 @@ public class CapManager implements Serializable, CapListener {
             Severity.SeverityCode severity = cap.updateActualEffect(geocode);
 
             if (cap.getStatus() != AlertStatus.EXPIRED) {
-                if (!cap.isNotified() && Severity.compare(severity, CareService.NOTIFY_SEVERITY) >= 0) {
-                    if (Severity.compare(severity, CareService.ALERT_SEVERITY) >= 0) {
-                        showAlertActivity(cap);
+                for (Info info : cap.info) {
+                    if (needAlert(info)) {
+                        showAlertActivity(info);
                     }
+                }
+                if (!cap.isNotified() && Severity.compare(severity, CareService.NOTIFY_SEVERITY) >= 0) {
                     notifies.add(cap);
                 }
             }
@@ -233,8 +237,22 @@ public class CapManager implements Serializable, CapListener {
         }
     }
 
-    public void showAlertActivity(CAP cap){
+    private boolean needAlert(CAP cap){
+        return AlertFactory.needAlert(cap);
+    }
 
+    private boolean needAlert(Info info){
+        return AlertFactory.needAlert(info);
+    }
+
+    public void showAlertActivity(Info info){
+        if (Core.onAlertActivity) return;
+        Intent intent = new Intent(appContext, AlertActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("Info", info);
+        intent.putExtras(bundle);
+        appContext.startActivity(intent);
     }
 
     @Override

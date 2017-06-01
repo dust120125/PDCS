@@ -13,6 +13,8 @@ import java.util.Map;
 
 public class AP_defalut extends AreaParser {
 
+    public static final String NAME = "AP_defalut";
+
     @Override
     public Map<String, Area> parse(Info info) {
         Severity.SeverityCode severity = Severity.SeverityCode.valueOf(info.severity);

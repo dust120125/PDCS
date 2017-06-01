@@ -57,7 +57,7 @@ public class CareService extends Service implements UserCallbacks{
 
     private static final String SERVICE = "Service";
     private static final int UPDATE_STATUS_ID = 1;
-    private static final int UPDATE_INTERVAL = 60000 * 5;
+    private static final int UPDATE_INTERVAL = (int)(60000 * 0.5);
 
     public static final String UPDATE_STATUS = "updateStatus";
     public static final Severity.SeverityCode NOTIFY_SEVERITY = Severity.SeverityCode.Moderate; //嚴重度大於本數值之 CAP 顯示通知訊息
@@ -341,7 +341,7 @@ public class CareService extends Service implements UserCallbacks{
 
     @Override
     public void onLogout() {
-        stopSelf();
+
     }
 
     @Override

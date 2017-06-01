@@ -20,4 +20,5 @@
     <string name="error_field_required">不能為空</string>
     <string name="error_user_no_found">找不到此用戶</string>
 
+
 </resources>

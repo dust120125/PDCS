@@ -44,7 +44,14 @@ public class Info implements Comparable<Info>, Serializable {
 
         try {
             Date effTime = CAP.DATE_FORMAT.parse(effective);
-            if (now.getTime() - effTime.getTime() >= 0) {
+            Date onsetTime;
+            if (onset != null && !onset.isEmpty() && !onset.equals("1900-01-01 00:00:00")) {
+                 onsetTime = CAP.DATE_FORMAT.parse(onset);
+            } else {
+                onsetTime = effTime;
+            }
+
+            if (now.getTime() - onsetTime.getTime() >= 0) {
                 Date expTime = CAP.DATE_FORMAT.parse(expires);
                 if (now.getTime() - expTime.getTime() >= 0) {
                     return AlertStatus.EXPIRED;

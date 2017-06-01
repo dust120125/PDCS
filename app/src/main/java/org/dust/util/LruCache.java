@@ -48,4 +48,10 @@ public class LruCache<K, V> extends HashMap<K, V> {
         counter.remove(key);
         return super.remove(key);
     }
+
+    @Override
+    public void clear() {
+        counter.clear();
+        super.clear();
+    }
 }

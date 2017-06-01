@@ -63,6 +63,7 @@ public class Core extends Application {
 
     public static boolean PERMISSION_ACCESS_LOCATION = false;
 
+    public static boolean onAlertActivity = false;
     private GeoSql GEO_SQL;
     private LruCache<String, GeoData> geoDataLruCache;
     private LocationRequester mLocationRequester;
