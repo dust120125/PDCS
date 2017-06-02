@@ -57,7 +57,7 @@ public class CareService extends Service implements UserCallbacks{
 
     private static final String SERVICE = "Service";
     private static final int UPDATE_STATUS_ID = 1;
-    private static final int UPDATE_INTERVAL = (int)(60000 * 0.5);
+    private static final int UPDATE_INTERVAL = (int)(60000 * 5);
 
     public static final String UPDATE_STATUS = "updateStatus";
     public static final Severity.SeverityCode NOTIFY_SEVERITY = Severity.SeverityCode.Moderate; //嚴重度大於本數值之 CAP 顯示通知訊息
@@ -140,19 +140,28 @@ public class CareService extends Service implements UserCallbacks{
                 if (!hasGcoDatabase()) return;
                 try {
                     Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.TAIWAN);
+                    /*
                     if (RUNNING_IN_EMULATOR){
                         location.setLatitude(22.5005421);
                         location.setLongitude(120.3835537);
                     }
+                    */
                     address = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1).get(0);
                     if (address == null) return;
-                    Log.d("Location", address.getAddressLine(0));
-                    String townCode = getTown(address.getAdminArea() + address.getLocality()).code_103;
-                    if (townCode != null) {
-                        capManager.setCurrentGeocode(townCode);
-                    } else {
-                        capManager.setCurrentGeocode(capManager.getCurrentGeocode());
+                    Log.i("Address", "getAddressLine: " + address.getAddressLine(0));
+                    Log.i("Address", "getAdminArea: " + address.getAdminArea());
+                    Log.i("Address", "getLocality: " + address.getLocality());
+                    Log.i("Address", "getSubAdminArea: " + address.getSubAdminArea());
+                    Log.i("Address", "getSubLocality: " + address.getSubLocality());
+                    if (address.getAdminArea() != null && address.getLocality() != null) {
+                        Log.d("Location", address.getAddressLine(0));
+                        String townCode = getTown(address.getAdminArea() + address.getLocality()).code_103;
+                        if (townCode != null) {
+                            capManager.setCurrentGeocode(townCode);
+                            return;
+                        }
                     }
+                    capManager.setCurrentGeocode(capManager.getCurrentGeocode());
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (Exception e){
@@ -167,6 +176,10 @@ public class CareService extends Service implements UserCallbacks{
         });
 
         started = true;
+    }
+
+    public void updateCap(){
+        capManager.downloadNewCaps(config.getLastestCapUpdateTime());
     }
 
     public boolean requestLocationService(){

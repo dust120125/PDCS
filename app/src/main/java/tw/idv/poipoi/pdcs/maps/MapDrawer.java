@@ -12,10 +12,10 @@ import org.dust.capApi.Area;
 import org.dust.capApi.Info;
 import org.dust.capApi.Value;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import tw.idv.poipoi.pdcs.HandlerCode;
-import tw.idv.poipoi.pdcs.MapsActivity;
 import tw.idv.poipoi.pdcs.SeverityColor;
 import tw.idv.poipoi.pdcs.geo.GeoData;
 import tw.idv.poipoi.pdcs.geo.Polygon;
@@ -68,6 +68,21 @@ public class MapDrawer {
                         .title(a.areaDesc.trim())
                         .snippet(info.description.trim());
                 addMarker(mo);
+            }
+            for(String p : a.polygon){
+                String[] points = p.split(" ");
+                ArrayList<LatLng> latLngs = new ArrayList<>();
+                for (String point : points) {
+                    String[] pstr = point.split(",");
+                    double lat = Double.parseDouble(pstr[0]);
+                    double lng = Double.parseDouble(pstr[1]);
+                    latLngs.add(new LatLng(lat, lng));
+                }
+                PolygonOptions po = new PolygonOptions()
+                        .add(latLngs.toArray(new LatLng[0]))
+                        .strokeWidth(4.0f)
+                        .fillColor(SeverityColor.getSeverityColor(a.severity));
+                addPolygon(po);
             }
         }
     }

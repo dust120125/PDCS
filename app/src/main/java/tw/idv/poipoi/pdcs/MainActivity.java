@@ -55,6 +55,7 @@ import tw.idv.poipoi.pdcs.user.User;
 import tw.idv.poipoi.pdcs.user.UserCallbacks;
 import tw.idv.poipoi.pdcs.user.friend.Friend;
 
+import static tw.idv.poipoi.pdcs.Core.CARE_SERVICE;
 import static tw.idv.poipoi.pdcs.Core.CORE;
 
 public class MainActivity extends AppCompatActivity {
@@ -86,6 +87,14 @@ public class MainActivity extends AppCompatActivity {
 
         Intent serviceIt = new Intent(this, CareService.class);
         startService(serviceIt);
+
+        /*
+        Intent aa = new Intent(this, AlertActivity.class);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("Info", CORE.getCapByIndex(0).info.get(0));
+        aa.putExtras(bundle);
+        startActivity(aa);
+        */
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -303,6 +312,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onResume() {
+        CARE_SERVICE.updateCap();
+        super.onResume();
     }
 
     /**

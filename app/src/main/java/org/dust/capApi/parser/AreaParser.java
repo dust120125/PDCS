@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public abstract class AreaParser {
 
-    private final HashMap<String, Area> areas = new HashMap<>();
+    private HashMap<String, Area> areas = new HashMap<>();
     
     abstract public Map<String, Area> parse(Info info);
 

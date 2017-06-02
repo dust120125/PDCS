@@ -56,7 +56,7 @@ public class CapManager implements Serializable, CapListener {
     private ArrayList<String> updateList;
 
     private static final int UPDATE_LIST_LIMIT = 64;
-    private static final long EXPRIED_CAP_DEADLINE = TimeUnit.DAYS.toMillis(2); //2 days
+    private static final long EXPRIED_CAP_DEADLINE = TimeUnit.DAYS.toMillis(1); //1 days
 
     private List<CapListener> capListeners;
     private int notifiesID = 0;
@@ -97,7 +97,7 @@ public class CapManager implements Serializable, CapListener {
                 @Override
                 public void runCallback(Object... params) {
                     String result = (String) params[0];
-                    if (result.equals("null")) return;
+                    if (result == null || result.isEmpty() || result.equals("null")) return;
                     String[] capIds = result.split(",");
                     List<String> idList = new LinkedList<>();
                     for (String id : capIds) {

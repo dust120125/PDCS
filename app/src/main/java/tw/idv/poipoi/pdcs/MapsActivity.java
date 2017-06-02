@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.FragmentActivity;
 import android.text.util.Linkify;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TableLayout;
@@ -30,6 +31,7 @@ import org.dust.capApi.Severity;
 
 import tw.idv.poipoi.pdcs.maps.MapDrawer;
 
+import static android.os.AsyncTask.THREAD_POOL_EXECUTOR;
 import static tw.idv.poipoi.pdcs.Core.CORE;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -38,6 +40,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private TableLayout table_CapInfo;
     private LayoutInflater mInflater;
     private MyHandler mHandler;
+    private AsyncTask<Void, Void, Void> loadinGeodate;
 
     private CAP cap;
     private Info info;
@@ -137,6 +140,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        Log.i("MapActivity", "onMapReady");
         mMap = googleMap;
         mHandler.setGoogleMap(googleMap);
 
@@ -148,7 +152,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.moveCamera(CameraUpdateFactory.zoomTo(7.75f));
 
         if (CORE.hasGeoDatabase()) {
-            AsyncTask<Void, Void, Void> loadinGeodate = new AsyncTask<Void, Void, Void>() {
+            loadinGeodate = new AsyncTask<Void, Void, Void>() {
                 @Override
                 protected Void doInBackground(Void... params) {
                     MapDrawer md = new MapDrawer(info, mHandler);
@@ -156,9 +160,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     return null;
                 }
             };
-            loadinGeodate.execute();
+            loadinGeodate.executeOnExecutor(THREAD_POOL_EXECUTOR);
+
         } else {
             Toast.makeText(this, "區域資料庫未下載完成！", Toast.LENGTH_LONG).show();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        loadinGeodate.cancel(true);
     }
 }

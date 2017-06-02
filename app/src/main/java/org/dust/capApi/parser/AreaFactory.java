@@ -5,6 +5,8 @@
  */
 package org.dust.capApi.parser;
 
+import android.util.Log;
+
 import org.dust.capApi.Area;
 import org.dust.capApi.Info;
 import org.dust.capApi.Severity.SeverityCode;
@@ -22,8 +24,7 @@ public class AreaFactory {
 
     //可以加入 LruCache 做優化
 
-    private static LruCache<String, AreaParser> parserLruCache;
-    private static AreaParser defalutParser = new AP_defalut();
+    private static LruCache<String, Class> parserLruCache;
 
     static {
         parserLruCache = new LruCache<>(5);
@@ -34,17 +35,27 @@ public class AreaFactory {
         String eventCode = info.eventCode.get(0).value;
         String className = "AP_" + eventCode;
 
-        if ((ap = parserLruCache.get(className)) == null) {
+        Class parserClass;
+        if ((parserClass = parserLruCache.get(className)) == null) {
             try {
-                Class parserClass = Class.forName("org.dust.capApi.parser." + className);
-                ap = (AreaParser) parserClass.newInstance();
-                parserLruCache.put(className, ap);
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
-                ap = defalutParser;
+                parserClass = Class.forName("org.dust.capApi.parser." + className);
+                parserLruCache.put(className, parserClass);
+            } catch (ClassNotFoundException e) {
+                Log.d("AreaFactory", className + " No Found");
             }
         }
 
-        return ap.parse(info);
+        if (parserClass != null) {
+            try {
+                ap = (AreaParser) parserClass.newInstance();
+                return ap.parse(info);
+            } catch (InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+
+        Log.d("AreaFactory", "Use AP_defalut to parse");
+        return new AP_defalut().parse(info);
     }
 
     public static void cleanCache(){

@@ -17,6 +17,8 @@ import org.dust.capApi.Info;
 
 public class AlertActivity extends AppCompatActivity {
 
+    private Bundle mBundle;
+
     private boolean finished = false;
     private SoundPool soundPool;
     private int dangerSoundId;
@@ -28,10 +30,10 @@ public class AlertActivity extends AppCompatActivity {
         setContentView(R.layout.activity_alert);
 
         Intent intent = getIntent();
-        Bundle bundle = intent.getExtras();
-        Info info = (Info) bundle.getSerializable("Info");
+        mBundle = intent.getExtras();
+        Info info = (Info) mBundle.getSerializable("Info");
 
-        ((TextView) findViewById(R.id.textView_alertMessage)).setText(info.description);
+        ((TextView) findViewById(R.id.textView_alertMessage)).setText(info.description.trim());
 
         findViewById(R.id.button_sos).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -78,6 +80,7 @@ public class AlertActivity extends AppCompatActivity {
         super.onPause();
         if (!finished) {
             Intent intent = new Intent(this, AlertActivity.class);
+            intent.putExtras(mBundle);
             finish();
             Log.i("AlertActivity", "restart");
             startActivity(intent);
