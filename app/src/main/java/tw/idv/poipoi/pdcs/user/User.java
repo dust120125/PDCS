@@ -17,6 +17,7 @@ import java.util.LinkedList;
 
 import tw.idv.poipoi.pdcs.CareService;
 import tw.idv.poipoi.pdcs.Core;
+import tw.idv.poipoi.pdcs.Setting;
 import tw.idv.poipoi.pdcs.net.Callback;
 import tw.idv.poipoi.pdcs.net.URLConnectRunner;
 import tw.idv.poipoi.pdcs.properties.Config;
@@ -34,6 +35,7 @@ public class User implements UserCallbacks{
     public static final String EMAIL_INVALID = "userID_invalid";
 
     private static User mUser;
+    public static UserStatus Status;
     private boolean login = false;
     private boolean checkedLogin = false;
     private ArrayList<UserCallbacks> mCallbacks;
@@ -46,6 +48,7 @@ public class User implements UserCallbacks{
 
     public User(){
         mCallbacks = new ArrayList<>();
+        Status = new UserStatus();
         gson = new Gson();
     }
 
@@ -95,7 +98,7 @@ public class User implements UserCallbacks{
     public synchronized void updateFirebaseToken(){
         String token = FirebaseInstanceId.getInstance().getToken();
         if (token != null){
-            serverService("http://www.poipoi.idv.tw/android_login/UpdateFcmToken.php",
+            serverService(Setting.SERVER_DOMAIN + "android_login/UpdateFcmToken.php",
                     new String[]{"token=" + token});
         }
     }
@@ -115,7 +118,7 @@ public class User implements UserCallbacks{
     public String login(String email, String password, String androidID) {
         String result = null;
         try {
-            URL url = new URL("http://www.poipoi.idv.tw/android_login/Login2.php");
+            URL url = new URL(Setting.SERVER_DOMAIN + "android_login/Login2.php");
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
             String post = "userID=" + email + "&passWord=" + password + "&android_id=" + androidID;
@@ -151,7 +154,7 @@ public class User implements UserCallbacks{
     public String register(String email, String password) {
         String result = null;
         try {
-            URL url = new URL("http://www.poipoi.idv.tw/android_login/Register2.php");
+            URL url = new URL(Setting.SERVER_DOMAIN + "android_login/Register2.php");
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
             String post = "userID=" + email + "&passWord=" + password;
@@ -192,7 +195,7 @@ public class User implements UserCallbacks{
                 "&android_id=" + Core.android_id;
 
         checkedLogin = true;
-        new URLConnectRunner("http://www.poipoi.idv.tw/android_login/CheckLogin2.php",
+        new URLConnectRunner(Setting.SERVER_DOMAIN + "android_login/CheckLogin2.php",
                 post, Charset.defaultCharset(),
                 new Callback() {
                     @Override
@@ -287,4 +290,5 @@ public class User implements UserCallbacks{
             setLogin(true);
         }
     }
+
 }

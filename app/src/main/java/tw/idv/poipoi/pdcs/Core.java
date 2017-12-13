@@ -44,6 +44,7 @@ import tw.idv.poipoi.pdcs.net.URLConnectRunner;
 import tw.idv.poipoi.pdcs.properties.Config;
 import tw.idv.poipoi.pdcs.user.Response;
 import tw.idv.poipoi.pdcs.user.User;
+import tw.idv.poipoi.pdcs.user.UserStatus;
 
 /**
  * Created by DuST on 2017/3/4.
@@ -54,7 +55,7 @@ public class Core extends Application {
     public static final String CONFIG_FILE = "config.ini";
 
     public static Core CORE;
-    public static CareService CARE_SERVICE;
+    public CareService CARE_SERVICE;
     public static Gson gson = new Gson();
     public static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.TAIWAN);
 
@@ -62,6 +63,8 @@ public class Core extends Application {
     public static String android_id;
 
     public static boolean PERMISSION_ACCESS_LOCATION = false;
+    private boolean helpServiceOn;
+    private boolean helpMode;
 
     public static boolean onAlertActivity = false;
     private GeoSql GEO_SQL;
@@ -93,6 +96,7 @@ public class Core extends Application {
     public void onCreate() {
         super.onCreate();
         CORE = this;
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT+8"));
         Log.i("Thread", "Core: " + Thread.currentThread().getId());
         Thread.setDefaultUncaughtExceptionHandler(new CrashHandler(getApplicationContext(), "AppCrash"));
         android_id = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
@@ -148,6 +152,46 @@ public class Core extends Application {
         return CARE_SERVICE;
     }
 
+    public void startHelpMode(String capId){
+        User.Status.setSafety(UserStatus.SAFETY_STATUS_DANGER);
+        User.Status.setEvent(capId);
+        setHelpMode(true);
+        Core.CORE.startHelpActivity();
+    }
+
+    public void exitHelpMode(){
+        stopService(new Intent(this, HelpService.class));
+        setHelpMode(false);
+        User.Status.setSafety(UserStatus.SAFETY_STATUS_SAFE);
+    }
+
+    public void startHelpActivity(){
+        Intent it = new Intent(this, HelpActivity.class);
+        it.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(it);
+    }
+
+    public void startHelpService(){
+        Intent it = new Intent(this, HelpService.class);
+        startService(it);
+    }
+
+    public boolean isHelpServiceOn() {
+        return helpServiceOn;
+    }
+
+    public void setHelpServiceOn(boolean helpServiceOn) {
+        this.helpServiceOn = helpServiceOn;
+    }
+
+    public boolean isHelpMode() {
+        return helpMode;
+    }
+
+    public void setHelpMode(boolean helpMode) {
+        this.helpMode = helpMode;
+    }
+
     public FriendSql getFriendSql(){
         if (mFriendSql == null){
             mFriendSql = new FriendSql(this);
@@ -157,7 +201,7 @@ public class Core extends Application {
 
     public static void getCap(String capId, Callback callback) {
         runURLConnect(
-                "http://www.poipoi.idv.tw/android_login/ServerApib.php?capId=" + capId,
+                Setting.SERVER_DOMAIN + "android_login/ServerApib.php?capId=" + capId,
                 Charset.defaultCharset(),
                 callback
         );
@@ -165,7 +209,7 @@ public class Core extends Application {
 
     public static void getCap(boolean expired, Callback callback) {
         runURLConnect(
-                "http://www.poipoi.idv.tw/android_login/ServerApib.php?expired=" + expired,
+                Setting.SERVER_DOMAIN + "android_login/ServerApib.php?expired=" + expired,
                 Charset.defaultCharset(),
                 callback
         );

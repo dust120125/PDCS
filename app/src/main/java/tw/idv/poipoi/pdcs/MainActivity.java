@@ -43,6 +43,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 
+import tw.idv.poipoi.pdcs.database.DBManager;
 import tw.idv.poipoi.pdcs.database.GeoSqlHelper;
 import tw.idv.poipoi.pdcs.database.GeocodeSqlHelper;
 import tw.idv.poipoi.pdcs.fragment.CapListHandler;
@@ -55,7 +56,6 @@ import tw.idv.poipoi.pdcs.user.User;
 import tw.idv.poipoi.pdcs.user.UserCallbacks;
 import tw.idv.poipoi.pdcs.user.friend.Friend;
 
-import static tw.idv.poipoi.pdcs.Core.CARE_SERVICE;
 import static tw.idv.poipoi.pdcs.Core.CORE;
 
 public class MainActivity extends AppCompatActivity {
@@ -77,6 +77,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ACCESS_LOCATION = 978;
 
+    private DBManager dbm;
+
     private DownloadManager downloadManager;
     private static long geodbDownloadId, gcodbDownloadId;
 
@@ -88,13 +90,13 @@ public class MainActivity extends AppCompatActivity {
         Intent serviceIt = new Intent(this, CareService.class);
         startService(serviceIt);
 
-        /*
+
         Intent aa = new Intent(this, AlertActivity.class);
         Bundle bundle = new Bundle();
-        bundle.putSerializable("Info", CORE.getCapByIndex(0).info.get(0));
+        //bundle.putSerializable("Info", CORE.getCapByIndex(0).info.get(0));
         aa.putExtras(bundle);
         startActivity(aa);
-        */
+
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -126,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateGeodata() {
         CORE.rebuildDatabase();
-        Core.runURLConnect("http://www.poipoi.idv.tw/android_login/files/city_103.kml.json", Charset.forName("big5"), new Callback() {
+        Core.runURLConnect(Setting.SERVER_DOMAIN + "android_login/files/city_103.kml.json", Charset.forName("big5"), new Callback() {
             @Override
             public void runCallback(Object... params) {
                 String s = params[0].toString();
@@ -141,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("URL", "city_103.kml.json Done");
             }
         });
-        Core.runURLConnect("http://www.poipoi.idv.tw/android_login/files/town_103.kml.json", Charset.forName("big5"), new Callback() {
+        Core.runURLConnect(Setting.SERVER_DOMAIN + "android_login/files/town_103.kml.json", Charset.forName("big5"), new Callback() {
             @Override
             public void runCallback(Object... params) {
                 String s = params[0].toString();
@@ -156,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("URL", "town_103.kml.json Done");
             }
         });
-        Core.runURLConnect("http://www.poipoi.idv.tw/android_login/files/village_103.kml.json", Charset.forName("big5"), new Callback() {
+        Core.runURLConnect(Setting.SERVER_DOMAIN + "android_login/files/village_103.kml.json", Charset.forName("big5"), new Callback() {
             @Override
             public void runCallback(Object... params) {
                 String s = params[0].toString();
@@ -192,6 +194,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initDatabase() {
+
+        dbm = new DBManager(this);
+        dbm.checkDatabase();
+        /*
         File geodb = getDatabasePath(GeoSqlHelper.DATABASE_NAME);
         if (!geodb.exists()) {
             downloadGeodataDatabase();
@@ -201,11 +207,12 @@ public class MainActivity extends AppCompatActivity {
         if (!gcodb.exists()) {
             downloadGeocodeDatabase();
         }
+        */
     }
 
     private void downloadGeodataDatabase() {
         downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse("http://www.poipoi.idv.tw/android_login/files/GeoData.db"));
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(Setting.SERVER_DOMAIN + "android_login/files/GeoData.db"));
         request.setDestinationInExternalFilesDir(this, "database", "/" + GeoSqlHelper.DATABASE_NAME)
                 .setTitle("正在下載地區資料庫")
                 .setDescription("請勿取消此下載！");
@@ -243,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void downloadGeocodeDatabase() {
         downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        DownloadManager.Request request = new DownloadManager.Request(Uri.parse("http://www.poipoi.idv.tw/android_login/files/GeoCode.db"));
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(Setting.SERVER_DOMAIN + "android_login/files/GeoCode.db"));
         request.setDestinationInExternalFilesDir(this, "database", "/" + GeocodeSqlHelper.DATABASE_NAME)
                 .setTitle("正在下載地區代碼資料庫")
                 .setDescription("請勿取消此下載！");
@@ -316,7 +323,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
-        CARE_SERVICE.updateCap();
+        try {
+            CORE.getCareService().updateCap();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         super.onResume();
     }
 
@@ -410,7 +421,7 @@ public class MainActivity extends AppCompatActivity {
 
         private void searchFriend(String email) {
             if (email != null && email.contains("@")) {
-                User.getInstance().serverService("http://www.poipoi.idv.tw/android_login/Friend.php?mode=search",
+                User.getInstance().serverService(Setting.SERVER_DOMAIN + "android_login/Friend.php?mode=search",
                         new String[]{"friendID=" + email});
             } else {
                 Toast.makeText(getContext(), "Email欄位不能為空!", Toast.LENGTH_LONG).show();
@@ -430,7 +441,7 @@ public class MainActivity extends AppCompatActivity {
                     .setNegativeButton("確定", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            User.getInstance().serverService("http://www.poipoi.idv.tw/android_login/Friend.php?mode=invite",
+                            User.getInstance().serverService(Setting.SERVER_DOMAIN + "android_login/Friend.php?mode=invite",
                                     new String[]{"friendID=" + email});
                         }
                     });
@@ -456,23 +467,25 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Response response) {
             switch (response.getAction()) {
                 case ServerAction.FRIEND_ID_FOUND:
-                    if ((boolean) response.getData(0)) {
+                    if ((boolean) response.getData(0) && response.getData(1) != null) {
                         showInviteFriendDialog(response.getData(1).toString());
                     } else {
-                        String err;
-                        switch (response.getData(1).toString()){
-                            case "self":
-                                err = "你不能邀請自己成為好友";
-                                break;
-                            case "no_found":
-                                err = "找不到此帳號";
-                                break;
-                            case "already_friend":
-                                err = "你和這個人已經是朋友了";
-                                break;
-                            default:
-                                err = "錯誤";
-                                break;
+                        String err = "錯誤";
+                        if (response.getData(1) != null) {
+                            switch (response.getData(1).toString()) {
+                                case "self":
+                                    err = "你不能邀請自己成為好友";
+                                    break;
+                                case "no_found":
+                                    err = "找不到此帳號";
+                                    break;
+                                case "already_friend":
+                                    err = "你和這個人已經是朋友了";
+                                    break;
+                                default:
+                                    err = "錯誤";
+                                    break;
+                            }
                         }
                         Toast.makeText(getContext(), err, Toast.LENGTH_LONG).show();
                     }

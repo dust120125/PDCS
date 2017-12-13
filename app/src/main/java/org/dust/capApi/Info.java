@@ -36,6 +36,7 @@ public class Info implements Comparable<Info>, Serializable {
     public ArrayList<Resource> resource = new ArrayList<>();
     public ArrayList<Area> area = new ArrayList<>();
 
+    private boolean alerted;
     private Map<String, Area> commonSeverityArea;
     private transient Severity.SeverityCode actualEffect;
 
@@ -141,6 +142,14 @@ public class Info implements Comparable<Info>, Serializable {
             default:
                 return "未知";
         }
+    }
+
+    public boolean isAlerted() {
+        return alerted;
+    }
+
+    public void setAlerted(boolean alerted) {
+        this.alerted = alerted;
     }
 
     @Override

@@ -41,6 +41,7 @@ import tw.idv.poipoi.pdcs.alert.AlertFactory;
 import tw.idv.poipoi.pdcs.net.Callback;
 import tw.idv.poipoi.pdcs.net.URLConnectRunner;
 import tw.idv.poipoi.pdcs.properties.Config;
+import tw.idv.poipoi.pdcs.user.User;
 
 /**
  * Created by DuST on 2017/5/23.
@@ -92,7 +93,8 @@ public class CapManager implements Serializable, CapListener {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd%20HH:mm:ss", Locale.TAIWAN);
             String dateStr = sdf.format(lastUpdateDate);
             //String url = "http://www.poipoi.idv.tw/android_login/CheckUpdate.php?time='" + dateStr + "'";
-            String url = "http://www.poipoi.idv.tw/android_login/CheckUpdate2.php";
+            //String url = Setting.SERVER_DOMAIN + "android_login/CheckUpdate2.php";
+            String url = Setting.SERVER_DOMAIN + "android_login/CheckUpdate2.php?expired=true";
             new URLConnectRunner(url, null, Charset.defaultCharset(), new Callback() {
                 @Override
                 public void runCallback(Object... params) {
@@ -187,12 +189,18 @@ public class CapManager implements Serializable, CapListener {
     public void updateActualEffect(String geocode) {
         Log.i("CAP", "updateActualEffect: " + geocode);
         List<CAP> notifies = new LinkedList<>();
+        Severity.SeverityCode highSeverity = Severity.SeverityCode.None;
+
         for (CAP cap : CAP_LIST) {
             Severity.SeverityCode severity = cap.updateActualEffect(geocode);
+            if (Severity.compare(severity, highSeverity) >= 0) {
+                highSeverity = severity;
+            }
 
             if (cap.getStatus() != AlertStatus.EXPIRED) {
                 for (Info info : cap.info) {
-                    if (needAlert(info)) {
+                    if (!info.isAlerted() && needAlert(info)) {
+                        info.setAlerted(true);
                         showAlertActivity(info);
                     }
                 }
@@ -201,6 +209,7 @@ public class CapManager implements Serializable, CapListener {
                 }
             }
         }
+        User.Status.setSeverity(highSeverity);
         showNotification(notifies);
         Collections.sort(CAP_LIST);
         notifyDataSetChanged(CAP_LIST);
@@ -325,7 +334,7 @@ public class CapManager implements Serializable, CapListener {
 
                 String result = null;
                 try {
-                    URL url = new URL("http://www.poipoi.idv.tw/android_login/ServerApib.php");
+                    URL url = new URL(Setting.SERVER_DOMAIN + "android_login/ServerApib.php");
                     HttpURLConnection con = (HttpURLConnection) url.openConnection();
                     con.setRequestMethod("POST");
 

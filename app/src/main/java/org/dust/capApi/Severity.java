@@ -79,6 +79,11 @@ public class Severity {
         }
     }
 
+    /**
+     * @return -1 => code1 lower,
+     * 0 => same,
+     * 1 => code1 higher,
+     */
     public static int compare(SeverityCode code1, SeverityCode code2) {
         if (code1 == code2) return 0;
         if (code1 == null) return -1;

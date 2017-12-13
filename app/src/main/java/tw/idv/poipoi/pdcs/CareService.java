@@ -48,7 +48,7 @@ public class CareService extends Service implements UserCallbacks{
 
     public static boolean RUNNING_IN_EMULATOR = isOnEmulator();
     public static boolean DOWNLOAD_ALL_CAP = false;
-    public static boolean DELETE_EXPIRED = true;
+    public static boolean DELETE_EXPIRED = false;
 
     private boolean started;
     private MyBinder mBinder;
@@ -57,7 +57,7 @@ public class CareService extends Service implements UserCallbacks{
 
     private static final String SERVICE = "Service";
     private static final int UPDATE_STATUS_ID = 1;
-    private static final int UPDATE_INTERVAL = (int)(60000 * 5);
+    private static final int UPDATE_INTERVAL = (int)(60000);
 
     public static final String UPDATE_STATUS = "updateStatus";
     public static final Severity.SeverityCode NOTIFY_SEVERITY = Severity.SeverityCode.Moderate; //嚴重度大於本數值之 CAP 顯示通知訊息
@@ -137,6 +137,7 @@ public class CareService extends Service implements UserCallbacks{
             @Override
             public void onLocationChanged(Location location) {
                 Address address = null;
+                User.Status.setLocation(location);
                 if (!hasGcoDatabase()) return;
                 try {
                     Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.TAIWAN);
@@ -413,7 +414,9 @@ public class CareService extends Service implements UserCallbacks{
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.i("Service", "Received broadcast: " + intent.getAction());
-            capManager.updateData();
+            if (intent.getAction().equals(UPDATE_STATUS)) {
+                capManager.updateData();
+            }
         }
     }
 }

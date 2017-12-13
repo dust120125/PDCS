@@ -1,5 +1,6 @@
 package tw.idv.poipoi.pdcs;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
@@ -22,6 +23,7 @@ public class AlertActivity extends AppCompatActivity {
     private boolean finished = false;
     private SoundPool soundPool;
     private int dangerSoundId;
+    private Info info;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,15 +31,23 @@ public class AlertActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alert);
 
-        Intent intent = getIntent();
+        final Intent intent = getIntent();
         mBundle = intent.getExtras();
-        Info info = (Info) mBundle.getSerializable("Info");
-
-        ((TextView) findViewById(R.id.textView_alertMessage)).setText(info.description.trim());
+        info = (Info) mBundle.getSerializable("Info");
+        if (info != null) {
+            ((TextView) findViewById(R.id.textView_alertMessage)).setText(info.description.trim());
+        } else {
+            ((TextView) findViewById(R.id.textView_alertMessage)).setText("Test");
+        }
 
         findViewById(R.id.button_sos).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (info != null) {
+                    Core.CORE.startHelpMode(info.capId);
+                } else {
+                    Core.CORE.startHelpMode(null);
+                }
                 finished = true;
                 finish();
             }
@@ -52,7 +62,7 @@ public class AlertActivity extends AppCompatActivity {
         });
 
         SoundPool.Builder builder = new SoundPool.Builder();
-        AudioAttributes attributes = new AudioAttributes.Builder().setLegacyStreamType(AudioManager.STREAM_MUSIC).build();
+        AudioAttributes attributes = new AudioAttributes.Builder().setLegacyStreamType(AudioManager.STREAM_ALARM).build();
         builder.setMaxStreams(2).setAudioAttributes(attributes);
         soundPool = builder.build();
         dangerSoundId = soundPool.load(this, R.raw.danger_alert_sound, 1);
